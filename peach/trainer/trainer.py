@@ -1,6 +1,5 @@
 from pathlib import Path
 import numpy as np
-import pandas as pd
 import torch
 from tqdm import tqdm
 
@@ -33,101 +32,77 @@ class Trainer:
         checkpoint_path = checkpoints_dir / f"v{self.version}-e{epoch}.hdf5"
         torch.save(checkpoint, checkpoint_path)
 
-    def training_step(self, batch, batch_idx):
-        imgs, labels = batch
-        imgs = imgs.to(self.device)
-        labels = labels.to(self.device)
+    def training_phase(
+            self,
+            train_dataloader,
+            model,
+            criterion,
+            optimizer,
+        ):
+        model.train()
 
-        optimizer.zero_grad()
-        predictions = model(imgs)
+        for batch_idx, batch in enumerate(tqdm(train_dataloader)):
+            spectrograms, labels = batch
+            spectrograms = spectrograms.to(self.device)
+            labels = labels.to(self.device)
 
-        loss = criterion(predictions, labels)
-        loss.backward()
-        optimizer.step()
-        running_loss += loss.item()
-        output = {
-            'loss': loss,
-        }
-        return output
+            optimizer.zero_grad()
+            predictions = model(spectrograms)
+
+            loss = criterion(predictions, labels)
+            loss.backward()
+            optimizer.step()
+
+    def validation_phase(
+            self,
+            val_dataloader,
+            model,
+        ):
+        model.eval()
+
+        for batch_idx, batch in enumerate(tqdm(val_dataloader)):
+            spectrograms, labels = batch
+            spectrograms = spectrograms.to(self.device)
+            labels = labels.to(self.device)
+
+            predictions = model(spectrograms)
+            #TODO
 
     def fit(
             self,
-            criterion,
-            train_dataloader,
-            val_dataloader,
+            datamodule,
             model,
+            criterion,
             optimizer,
-            n_epochs=10,
         ):
+        train_dataloader = datamodule.train_dataloader()
+        val_dataloader = datamodule.val_dataloader()
 
-        for epoch in range(1, n_epochs + 1):
-            running_loss = 0
+        for epoch in range(1, self.n_epochs + 1):
+            self.training_phase(
+                train_dataloader=train_dataloader,
+                model=model,
+                criterion=criterion,
+                optimizer=optimizer,
+            )
+            self.validation_phase(
+                val_dataloader=val_dataloader,
+                model=model,
+            )
 
-            model.train()
-            for batch_idx, batch in enumerate(tqdm(train_dataloader)):
-                imgs, labels = batch
-                imgs = imgs.to(self.device)
-                labels = labels.to(self.device)
-
-                optimizer.zero_grad()
-                predictions = model(imgs)
-
-                loss = criterion(predictions, labels)
-                loss.backward()
-                optimizer.step()
-                running_loss += loss.item()
-
-            total = 0
-            correct = 0
-
-            model.eval()
-            for batch_idx, batch in enumerate(tqdm(val_dataloader)):
-                imgs, labels = batch
-                imgs = imgs.to(self.device)
-                labels = labels.to(self.device)
-
-                with torch.no_grad():
-                    predictions = model(imgs)
-                    _, answers = torch.max(input=predictions, dim=1)
-
-                    total += labels.size(0)
-                    correct += (answers == labels).sum().item()
-
-                self.save_checkpoint(
-                    model=model,
-                    optimizer=optimizer,
-                    epoch=epoch,
-                    checkpoints_dir=Path.cwd() / "models",
-                )
-
-            print(f"{100 * correct / total}% accuracy on {epoch} epoch")
+            self.save_checkpoint(
+                model=model,
+                optimizer=optimizer,
+                epoch=epoch,
+                checkpoints_dir=Path.cwd() / "models",
+            )
 
         return model
 
-
     def predict(
             self,
+            datamodule,
             model,
-            test_dataloader,
-            labels_test_filename="labels_test.csv",
         ):
-
-        submission = []
-
-        with torch.no_grad():
-            model.eval()
-            for batch_idx, batch in enumerate(tqdm(test_dataloader)):
-                imgs, filenames = batch
-                imgs = imgs.to(self.device)
-                predictions = model(imgs)
-                _, answers = torch.max(input=predictions, dim=1)
-
-                filenames = list(map(lambda p: p.split('/')[-1], filenames))
-                answers = list(map(lambda p: str(p).rjust(4, '0'), answers.tolist()))
-                submission += list(zip(filenames, answers))
-
-        submission.sort()
-        submission = np.array(submission)
-        df = pd.DataFrame(data={'Id': submission[:,0], 'Category': submission[:,1]})
-        df.to_csv(labels_test_filename, sep=',', index=False)
+        pass
 
