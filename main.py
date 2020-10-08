@@ -1,14 +1,21 @@
+from pathlib import Path
+
 from torch.nn import CTCLoss
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import StepLR
 
-from peach.datamodules import SimpleDataModule
+from peach.datamodules import LJSpeechDataModule
 from peach.models import SimpleRecognizer, QuartzNetRecognizer
 from peach.trainer import Trainer
 
 
 def main():
-    datamodule = SimpleDataModule()
+    datamodule = LJSpeechDataModule(
+        data_dir=Path("data/LJSpeech-1.1"),
+        batch_size=16,
+        num_workers=4,
+    )
+    datamodule.setup()
     model = SimpleRecognizer(
         in_channels=None,    #TODO
         out_channels=None,
