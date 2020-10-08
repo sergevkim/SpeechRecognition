@@ -1,2 +1,2 @@
-from .simple_filenames_datamodule import SimpleFilenamesDataset
+from .lj_speech_datamodule import LJSpeechDataModule
 

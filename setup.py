@@ -14,7 +14,7 @@ def main():
     setup(
         name=package_name,
         version="0.1.0",
-        description="peach",
+        description="Speech Recognition",
         packages=packages,
         package_dir={package_name: package_name},
         include_package_data=True,

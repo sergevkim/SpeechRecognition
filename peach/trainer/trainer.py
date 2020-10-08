@@ -89,7 +89,6 @@ class Trainer:
                 val_dataloader=val_dataloader,
                 model=model,
             )
-
             self.save_checkpoint(
                 model=model,
                 optimizer=optimizer,
