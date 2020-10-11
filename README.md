@@ -8,7 +8,7 @@
 
 `./scripts/download_data.sh`
 
-### 2. Train [WIP]:
+### 3. Train [WIP]:
 
 `./scripts/train_choo_choo.sh`
 

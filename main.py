@@ -5,7 +5,7 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import StepLR
 
 from peach.datamodules import LJSpeechDataModule
-from peach.models import SimpleRecognizer, QuartzNetRecognizer
+from peach.models import JasperRecognizer, QuartzNetRecognizer
 from peach.trainer import Trainer
 
 
@@ -16,7 +16,7 @@ def main():
         num_workers=4,
     )
     datamodule.setup()
-    model = SimpleRecognizer(
+    model = JasperRecognizer(
         in_channels=None,    #TODO
         out_channels=None,
     )
@@ -31,8 +31,8 @@ def main():
     )
 
     trainer.fit(
-        datamodule=datamodule,
         model=model,
+        datamodule=datamodule,
         criterion=criterion,
         optimizer=optimizer,
         scheduler=scheduler,
