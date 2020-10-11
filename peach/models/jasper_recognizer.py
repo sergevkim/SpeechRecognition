@@ -13,26 +13,36 @@ class JasperSubBlock(Module):
             self,
             in_channels: int,
             out_channels: int,
+            kernel_width: int,
+            dropout_p: float,
+            stride: int=1,
+            dilation: int=1,
         ):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
+        self.kernel_width = kernel_width
+        self.dropout_p = dropout_p
+        self.stride = stride
+        self.dilation = dilation
+
         self.sequential = Sequential(
             Conv1d(
                 in_channels=self.in_channels,
                 out_channels=self.out_channels,
-                kernel_size=(3),
-                padding=1,
+                kernel_size=self.kernel_width,
+                stride=self.stride,
+                dilation=self.dilation,
             ),
             BatchNorm1d(num_features=self.out_channels),
             ReLU(inplace=True),
-            Dropout(p=0.2, implace=True),
+            Dropout(p=self.dropout_p, inplace=True),
         )
 
     def forward(self, x):
-        output = self.sequential(x)
+        x_1 = self.sequential(x)
 
-        return output
+        return x_1
 
 
 class JasperBlock(Module):
@@ -41,34 +51,47 @@ class JasperBlock(Module):
             r: int,
             in_channels: int,
             out_channels: int,
+            kernel_width: int,
+            dropout_p: int,
         ):
         super().__init__()
         self.r = r
         self.in_channels = in_channels
         self.out_channels = out_channels
+        self.kernel_width = kernel_width
+        self.dropout_p = dropout_p
 
         self.subblocks_list = list()
         for i in range(self.r):
-            self.subblocks_list.append(JasperSubBlock())
-        self.subblocks_list.append() #TODO
-
-        self.subblocks = Sequential(*self.subblocks_list)
-        self.residual_connection = Sequential(
-            Conv2d(
+            self.subblocks_list.append(JasperSubBlock(
                 in_channels=self.in_channels,
                 out_channels=self.out_channels,
-                kernel_size=(1, 1),
+                kernel_width=self.kernel_width,
+                dropout_p=self.dropout_p,
+            ))
+
+        self.subblocks = Sequential(*self.subblocks_list)
+        self.first_half_subblock = Sequential(
+            Conv1d(
+                in_channels=self.in_channels,
+                out_channels=self.out_channels,
+                kernel_width=self.kernel_width,
             ),
-            BatchNorm1d(), #TODO
+            BatchNorm1d(num_features=self.out_channels),
+        )
+        self.second_half_subblock = Sequential(
+            ReLU(inplace=True),
+            Dropout(p=self.dropout_p, inplace=True),
         )
 
-    def forward(self, x):#TODO
-        residual = x
+    def forward(self, x):
         x_1 = self.subblocks(x)
+        x_2 = self.residual_connection(x)
+        x_3 = self.first_half_subblock(x_1)
+        x_4 = x_2 + x_3
+        x_5 = self.second_half_subblock(x_4)
 
-        output = self.sequential(x) + residual
-
-        return output
+        return x_5
 
 
 class JasperRecognizer(Module):
@@ -76,13 +99,125 @@ class JasperRecognizer(Module):
             self,
             b: int=10,
             r: int=5,
-        ): #TODO
-        self.prolog
-        self.sequential
-        self.epilog = Sequential(
-            
+            in_channels: int=100,
+            out_channels: int=200,
+        ):
+        self.b = b
+        self.r = r
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+
+        self.b1 = Sequential(
+            JasperBlock(
+                in_channels=256,
+                out_channels=256,
+                kernel_width=11,
+                dropout_p=0.2,
+            ),
+            JasperBlock(
+                in_channels=256,
+                out_channels=256,
+                kernel_width=11,
+                dropout_p=0.2,
+            ),
+        )
+        self.b2 = Sequential(
+            JasperBlock(
+                in_channels=256,
+                out_channels=384,
+                kernel_width=13,
+                dropout_p=0.2,
+            ),
+            JasperBlock(
+                in_channels=384,
+                out_channels=384,
+                kernel_width=13,
+                dropout_p=0.2,
+            ),
+        )
+        self.b3 = Sequential(
+            JasperBlock(
+                in_channels=384,
+                out_channels=512,
+                kernel_width=17,
+                dropout_p=0.2,
+            ),
+            JasperBlock(
+                in_channels=512,
+                out_channels=512,
+                kernel_width=17,
+                dropout_p=0.2,
+            ),
+        )
+        self.b4 = Sequential(
+            JasperBlock(
+                in_channels=512,
+                out_channels=640,
+                kernel_width=21,
+                dropout_p=0.3,
+            ),
+            JasperBlock(
+                in_channels=640,
+                out_channels=640,
+                kernel_width=21,
+                dropout_p=0.3,
+            ),
+        )
+        self.b5 = Sequential(
+            JasperBlock(
+                in_channels=640,
+                out_channels=768,
+                kernel_width=25,
+                dropout_p=0.3,
+            ),
+            JasperBlock(
+                in_channels=768,
+                out_channels=768,
+                kernel_width=25,
+                dropout_p=0.3,
+            ),
         )
 
-    def forward(self):
-        pass
+        self.blocks = Sequential(
+            self.b1,
+            self.b2,
+            self.b3,
+            self.b4,
+            self.b5,
+        )
+        self.prolog = JasperSubBlock(
+            in_channels=self.in_channels,
+            out_channels=256,
+            kernel_width=11,
+            dropout_p=0.2,
+            stride=2,
+        )
+        self.epilog = Sequential(
+            JasperSubBlock(
+                in_channels=768,
+                out_channels=896,
+                kernel_width=29,
+                dropout_p=0.4,
+                dilation=2,
+            ),
+            JasperSubBlock(
+                in_channels=896,
+                out_channels=1024,
+                kernel_width=1,
+                dropout_p=0.4,
+            ),
+            JasperSubBlock(
+                in_channels=1024,
+                out_channels=self.out_channels,
+                kernel_width=1,
+                dropout_p=0,
+            ),
+        )
+
+    def forward(self, x):
+        x_1 = self.prolog(x)
+        x_2 = self.blocks(x_1)
+        x_3 = self.epilog(x_2)
+
+        return x_3
 
