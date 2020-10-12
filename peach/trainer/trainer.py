@@ -46,12 +46,13 @@ class Trainer:
             spectrograms = spectrograms.to(self.device)
             labels = labels.to(self.device)
 
-            optimizer.zero_grad()
             predictions = model(spectrograms)
 
             loss = criterion(predictions, labels)
             loss.backward()
             optimizer.step()
+            optimizer.zero_grad()
+            #TODO model.training_step(batch=batch, batch_idx=batch_idx, criterion=criterion)
 
     def validation_phase(
             self,
@@ -70,10 +71,11 @@ class Trainer:
 
     def fit(
             self,
-            datamodule,
             model,
+            datamodule,
             criterion,
             optimizer,
+            scheduler,
         ):
         train_dataloader = datamodule.train_dataloader()
         val_dataloader = datamodule.val_dataloader()
@@ -100,8 +102,8 @@ class Trainer:
 
     def predict(
             self,
-            datamodule,
             model,
+            datamodule,
         ):
         pass
 

@@ -1,5 +1,7 @@
 # SpeechRecognition
 
+Jasper, QuartzNet in PyTorch
+
 ### 1. Install module:
 
 `./scripts/install_module.sh`
