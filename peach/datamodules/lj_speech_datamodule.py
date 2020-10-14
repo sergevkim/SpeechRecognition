@@ -2,7 +2,7 @@ from pathlib import Path
 from PIL import Image
 
 from torch.utils.data import Dataset, DataLoader, random_split
-from torchvision.transforms import ToTensor
+import torchaudio
 
 
 class LJSpeechDataset(Dataset):
@@ -18,11 +18,11 @@ class LJSpeechDataset(Dataset):
         return len(self.filenames)
 
     def __getitem__(self, idx):
-        wav_filename = self.filenames[idx]
-        wav = None #TODO
+        filename = self.filenames[idx]
+        waveform, sample_rate = torchaudio.load(filename)
         label = self.labels[idx]
 
-        return (wav, label)
+        return (waveform, label)
 
 
 class LJSpeechDataModule:

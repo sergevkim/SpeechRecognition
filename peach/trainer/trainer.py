@@ -1,6 +1,8 @@
 from pathlib import Path
 import numpy as np
+
 import torch
+from torchaudio.transforms import MelSpectrogram
 from tqdm import tqdm
 
 
@@ -14,6 +16,15 @@ class Trainer:
         self.device = device
         self.version = version
         self.writer = writer
+        self.mel_spectrogramer = MelSpectrogram(
+            n_fft=1024,
+            sample_rate=22000,
+            win_length=1024,
+            hop_length=256,
+            f_min=0,
+            f_max=800,
+            n_mels=80,
+        ).to(self.device)
 
     def save_checkpoint(
             self,
@@ -42,11 +53,12 @@ class Trainer:
         model.train()
 
         for batch_idx, batch in enumerate(tqdm(train_dataloader)):
-            spectrograms, labels = batch
-            spectrograms = spectrograms.to(self.device)
+            waveforms, labels = batch
+            waveforms = waveforms.to(self.device)
             labels = labels.to(self.device)
 
-            predictions = model(spectrograms)
+            mel_spectrograms = self.mel_spectrogramer(waveforms)
+            predictions = model(mel_spectrograms)
 
             loss = criterion(predictions, labels)
             loss.backward()
@@ -62,11 +74,12 @@ class Trainer:
         model.eval()
 
         for batch_idx, batch in enumerate(tqdm(val_dataloader)):
-            spectrograms, labels = batch
-            spectrograms = spectrograms.to(self.device)
+            waveforms, labels = batch
+            waveforms = waveforms.to(self.device)
             labels = labels.to(self.device)
+            mel_spectrograms = self.mel_spectrogramer(waveforms)
 
-            predictions = model(spectrograms)
+            predictions = model(mel_spectrograms)
             #TODO
 
     def fit(
