@@ -1,6 +1,7 @@
 from pathlib import Path
-import numpy as np
 
+import neptune
+import numpy as np
 import torch
 from torchaudio.transforms import MelSpectrogram
 from tqdm import tqdm
@@ -10,20 +11,13 @@ class Trainer:
     def __init__(
             self,
             device,
+            logger,
             version,
-            writer=None,
         ):
         self.device = device
+        self.logger = logger
         self.version = version
-        self.writer = writer
         self.mel_spectrogramer = MelSpectrogram(
-            n_fft=1024,
-            sample_rate=22000,
-            win_length=1024,
-            hop_length=256,
-            f_min=0,
-            f_max=800,
-            n_mels=80,
         ).to(self.device)
 
     def save_checkpoint(
@@ -43,44 +37,35 @@ class Trainer:
         checkpoint_path = checkpoints_dir / f"v{self.version}-e{epoch}.hdf5"
         torch.save(checkpoint, checkpoint_path)
 
-    def training_phase(
+    def training_epoch(
             self,
-            train_dataloader,
             model,
-            criterion,
+            train_dataloader,
             optimizer,
         ):
         model.train()
 
         for batch_idx, batch in enumerate(tqdm(train_dataloader)):
-            waveforms, labels = batch
-            waveforms = waveforms.to(self.device)
-            labels = labels.to(self.device)
-
-            mel_spectrograms = self.mel_spectrogramer(waveforms)
-            predictions = model(mel_spectrograms)
-
-            loss = criterion(predictions, labels)
+            loss = model.training_step(batch, batch_idx)
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
-            #TODO model.training_step(batch=batch, batch_idx=batch_idx, criterion=criterion)
+            model.training_step_end()
 
-    def validation_phase(
+        model.training_epoch_end()
+
+    def validation_epoch(
             self,
-            val_dataloader,
             model,
+            val_dataloader,
         ):
         model.eval()
 
         for batch_idx, batch in enumerate(tqdm(val_dataloader)):
-            waveforms, labels = batch
-            waveforms = waveforms.to(self.device)
-            labels = labels.to(self.device)
-            mel_spectrograms = self.mel_spectrogramer(waveforms)
+            loss = model.validation_step(batch, batch_idx)
+            model.validation_step_end()
 
-            predictions = model(mel_spectrograms)
-            #TODO
+        model.validation_epoch_end()
 
     def fit(
             self,
@@ -92,17 +77,17 @@ class Trainer:
         ):
         train_dataloader = datamodule.train_dataloader()
         val_dataloader = datamodule.val_dataloader()
+        optimizer = model.configure_optimizers()
 
         for epoch in range(1, self.n_epochs + 1):
-            self.training_phase(
-                train_dataloader=train_dataloader,
+            self.training_epoch(
                 model=model,
-                criterion=criterion,
+                train_dataloader=train_dataloader,
                 optimizer=optimizer,
             )
-            self.validation_phase(
-                val_dataloader=val_dataloader,
+            self.validation_epoch(
                 model=model,
+                val_dataloader=val_dataloader,
             )
             self.save_checkpoint(
                 model=model,

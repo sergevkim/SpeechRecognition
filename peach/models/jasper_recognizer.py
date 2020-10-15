@@ -1,11 +1,13 @@
 from torch.nn import (
     BatchNorm1d,
     Conv1d,
+    CTCLoss,
     Dropout,
     Module,
     ReLU,
     Sequential,
 )
+from torch.optim import AdamW
 
 
 class JasperSubBlock(Module):
@@ -97,11 +99,25 @@ class JasperBlock(Module):
 class JasperRecognizer(Module):
     def __init__(
             self,
+            criterion=CTCLoss(),
+            device=torch.device('cuda'),
             b: int=10,
             r: int=5,
             in_channels: int=100,
             out_channels: int=200,
         ):
+        self.device = device
+        self.criterion = criterion.to(delf.device)
+        self.mel_spectrogramer = MelSpectrogram(
+            n_fft=1024,
+            sample_rate=22000,
+            win_length=1024,
+            hop_length=256,
+            f_min=0,
+            f_max=800,
+            n_mels=80,
+        ).to(self.device)
+
         self.b = b
         self.r = r
         self.in_channels = in_channels
@@ -220,4 +236,46 @@ class JasperRecognizer(Module):
         x_3 = self.epilog(x_2)
 
         return x_3
+
+    def training_step(self, batch, batch_idx):
+        waveforms, labels = batch
+        waveforms = waveforms.to(device)
+        labels = labes.to(device)
+        mel_spectrograms = self.mel_spectrogramer(waveforms)
+
+        predictions = self(mel_spectrograms)
+        loss = criterion(predictions, labels)
+
+        return loss
+
+    def training_step_end(self):
+        pass
+
+    def training_epoch_end(self):
+        pass
+
+    def validation_step(self, batch, batch_idx):
+        waveforms, labels = batch
+        waveforms = waveforms.to(self.device)
+        labels = labels.to(self.device)
+        mel_spectrograms = self.mel_spectrogramer(waveforms)
+
+        predictions = self(mel_spectrograms)
+        loss = criterion(predictions, labels)
+
+        return loss
+
+    def validation_step_end(self):
+        pass
+
+    def validation_epoch_end(self):
+        pass
+
+    def configure_optimizers(self):
+        optimizer = AdamW(
+            params=model.parameters(),
+            lr=learning_rate,
+        )
+
+        return optimizer
 

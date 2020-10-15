@@ -1,10 +1,6 @@
 from argparse import ArgumentParser
 from pathlib import Path
 
-from torch.nn import CTCLoss
-from torch.optim import AdamW
-from torch.optim.lr_scheduler import StepLR
-
 from peach.datamodules import LJSpeechDataModule
 from peach.models import JasperRecognizer, QuartzNetRecognizer
 from peach.trainer import Trainer
@@ -15,24 +11,17 @@ def main(args):
     learning_rate = args['learning_rate']
     max_epoch = args['max_epoch']
 
-    datamodule = LJSpeechDataModule(
-        data_dir=Path("data/LJSpeech-1.1"),
-        batch_size=16,
-        num_workers=4,
-    )
-    datamodule.setup()
     model = JasperRecognizer(
         b=10,
         r=5,
         in_channels=None,    #TODO
         out_channels=None,
     ).to(device)
-    criterion = CTCLoss    #TODO? CTCLoss(blank=28).to(device)
-    optimizer = AdamW(
-        params=model.parameters(),
-        lr=learning_rate,
+    datamodule = LJSpeechDataModule(
+        data_dir=Path("data/LJSpeech-1.1"),
+        batch_size=16,
+        num_workers=4,
     )
-    scheduler = StepLR()
     trainer = Trainer(
         max_epoch=max_epoch,
     )
@@ -40,9 +29,6 @@ def main(args):
     trainer.fit(
         model=model,
         datamodule=datamodule,
-        criterion=criterion,
-        optimizer=optimizer,
-        scheduler=scheduler,
     )
 
 
