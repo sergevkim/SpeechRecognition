@@ -1,6 +1,8 @@
 from argparse import ArgumentParser
 from pathlib import Path
 
+import neptune
+
 from peach.datamodules import LJSpeechDataModule
 from peach.models import JasperRecognizer, QuartzNetRecognizer
 from peach.trainer import Trainer
@@ -14,16 +16,18 @@ def main(args):
     model = JasperRecognizer(
         b=10,
         r=5,
-        in_channels=None,    #TODO
-        out_channels=None,
+        device=device,
     ).to(device)
     datamodule = LJSpeechDataModule(
         data_dir=Path("data/LJSpeech-1.1"),
         batch_size=16,
         num_workers=4,
     )
+    logger = None #TODO
     trainer = Trainer(
+        logger=logger,
         max_epoch=max_epoch,
+        version=version,
     )
 
     trainer.fit(

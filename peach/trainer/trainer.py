@@ -1,24 +1,19 @@
 from pathlib import Path
 
-import neptune
-import numpy as np
 import torch
-from torchaudio.transforms import MelSpectrogram
 from tqdm import tqdm
 
 
 class Trainer:
     def __init__(
             self,
-            device,
             logger,
+            max_epoch,
             version,
         ):
-        self.device = device
         self.logger = logger
+        self.max_epoch = max_epoch
         self.version = version
-        self.mel_spectrogramer = MelSpectrogram(
-        ).to(self.device)
 
     def save_checkpoint(
             self,
@@ -71,15 +66,12 @@ class Trainer:
             self,
             model,
             datamodule,
-            criterion,
-            optimizer,
-            scheduler,
         ):
         train_dataloader = datamodule.train_dataloader()
         val_dataloader = datamodule.val_dataloader()
         optimizer = model.configure_optimizers()
 
-        for epoch in range(1, self.n_epochs + 1):
+        for epoch in range(1, self.max_epoch + 1):
             self.training_epoch(
                 model=model,
                 train_dataloader=train_dataloader,

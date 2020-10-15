@@ -8,6 +8,7 @@ from torch.nn import (
     Sequential,
 )
 from torch.optim import AdamW
+from torchaudio.transforms import MelSpectrogram
 
 
 class JasperSubBlock(Module):
@@ -99,15 +100,14 @@ class JasperBlock(Module):
 class JasperRecognizer(Module):
     def __init__(
             self,
-            criterion=CTCLoss(),
-            device=torch.device('cuda'),
             b: int=10,
             r: int=5,
             in_channels: int=100,
             out_channels: int=200,
+            device=torch.device('cuda'),
         ):
         self.device = device
-        self.criterion = criterion.to(delf.device)
+        self.criterion = CTCLoss().to(delf.device) #TODO
         self.mel_spectrogramer = MelSpectrogram(
             n_fft=1024,
             sample_rate=22000,
@@ -240,7 +240,7 @@ class JasperRecognizer(Module):
     def training_step(self, batch, batch_idx):
         waveforms, labels = batch
         waveforms = waveforms.to(device)
-        labels = labes.to(device)
+        labels = labels.to(device)
         mel_spectrograms = self.mel_spectrogramer(waveforms)
 
         predictions = self(mel_spectrograms)
