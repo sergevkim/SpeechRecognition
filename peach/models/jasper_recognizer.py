@@ -238,13 +238,18 @@ class JasperRecognizer(Module):
         return x_3
 
     def training_step(self, batch, batch_idx):
-        waveforms, labels = batch
+        waveforms, targets, waveform_lengths, target_lengths = batch
         waveforms = waveforms.to(device)
-        labels = labels.to(device)
+        targets = targets.to(device) #TODO lengths.to(device)?
         mel_spectrograms = self.mel_spectrogramer(waveforms)
 
         predictions = self(mel_spectrograms)
-        loss = criterion(predictions, labels)
+        loss = criterion(
+            log_probs=predictions,
+            targets=targets,
+            input_lengths=input_lengths,
+            target_lengths=target_lengths,
+        )
 
         return loss
 
@@ -255,6 +260,7 @@ class JasperRecognizer(Module):
         pass
 
     def validation_step(self, batch, batch_idx):
+        '''
         waveforms, labels = batch
         waveforms = waveforms.to(self.device)
         labels = labels.to(self.device)
@@ -264,6 +270,8 @@ class JasperRecognizer(Module):
         loss = criterion(predictions, labels)
 
         return loss
+        '''
+        pass
 
     def validation_step_end(self):
         pass

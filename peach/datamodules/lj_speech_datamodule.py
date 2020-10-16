@@ -1,6 +1,7 @@
 from pathlib import Path
 from PIL import Image
 
+from einops import rearrange
 from torch.utils.data import Dataset, DataLoader, random_split
 import torchaudio
 
@@ -9,10 +10,10 @@ class LJSpeechDataset(Dataset):
     def __init__(
             self,
             filenames,
-            labels,
+            targets,
         ):
         self.filenames = filenames
-        self.labels = labels
+        self.targets = labels
 
     def __len__(self):
         return len(self.filenames)
@@ -20,9 +21,13 @@ class LJSpeechDataset(Dataset):
     def __getitem__(self, idx):
         filename = self.filenames[idx]
         waveform, sample_rate = torchaudio.load(filename)
-        label = self.labels[idx]
+        target = self.targets[idx]
 
-        return (waveform, label)
+        #TODO waveform: rearrange + waveform_length
+        waveform_length = None
+        target_length = None
+
+        return (waveform, target, waveform_length, target_length)
 
 
 class LJSpeechDataModule:
@@ -62,11 +67,11 @@ class LJSpeechDataModule:
         ):
         data = self.prepare_data()
         wav_filenames = data['filenames']
-        labels = data['labels']
+        targets = data['labels']
 
         full_dataset = LJSpeechDataset(
             filenames=wav_filenames,
-            labels=labels,
+            targets=targets,
         )
 
         full_size = len(full_dataset)

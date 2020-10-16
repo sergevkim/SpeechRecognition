@@ -32,6 +32,7 @@ class Trainer:
         checkpoint_path = checkpoints_dir / f"v{self.version}-e{epoch}.hdf5"
         torch.save(checkpoint, checkpoint_path)
 
+    @torch.enable_grad()
     def training_epoch(
             self,
             model,
@@ -49,6 +50,7 @@ class Trainer:
 
         model.training_epoch_end()
 
+    @torch.no_grad()
     def validation_epoch(
             self,
             model,
