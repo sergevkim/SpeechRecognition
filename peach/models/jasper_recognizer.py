@@ -14,6 +14,7 @@ from torch.optim import AdamW
 from torchaudio.transforms import MelSpectrogram
 
 from peach.utils.metric_calculator import MetricCalculator
+from peach.utils.path_finder import PathFinder
 
 
 class JasperSubBlock(Module):
@@ -193,12 +194,12 @@ class JasperRecognizer(Module):
     def training_step(self, batch, batch_idx):
         waveforms, targets, waveform_lengths, target_lengths = batch
         waveforms = waveforms.to(device)
-        targets = targets.to(device) #TODO lengths.to(device)?
+        targets = targets.to(device)
         mel_spectrograms = self.mel_spectrogramer(waveforms)
 
         predictions = self(mel_spectrograms)
         log_probs = torch.nn.functional.log_softmax(predictions)
-        answers = peach.utils.find_best_path(log_probs) #TODO find best path
+        answers = PathFinder.find_best_path(log_probs)
         loss = criterion(
             log_probs=log_probs,
             targets=targets,
@@ -215,7 +216,7 @@ class JasperRecognizer(Module):
             targets=targets,
         )
 
-        return loss, cer, wer
+        return loss
 
     def training_step_end(self):
         pass
@@ -224,17 +225,6 @@ class JasperRecognizer(Module):
         print("Training epoch is over!")
 
     def validation_step(self, batch, batch_idx):
-        '''
-        waveforms, labels = batch
-        waveforms = waveforms.to(self.device)
-        labels = labels.to(self.device)
-        mel_spectrograms = self.mel_spectrogramer(waveforms)
-
-        predictions = self(mel_spectrograms)
-        loss = criterion(predictions, labels)
-
-        return loss
-        '''
         pass
 
     def validation_step_end(self):

@@ -20,6 +20,7 @@ class LJSpeechDataset(Dataset):
         ):
         self.filenames = filenames
         self.targets = targets
+        self.max_waveform_length = max_waveform_length
 
     def __len__(self):
         return len(self.filenames)
