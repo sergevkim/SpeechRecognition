@@ -19,7 +19,6 @@ class LJSpeechDataset(Dataset):
         ):
         self.filenames = filenames
         self.targets = targets
-        self.token_converter = TokenConverter()
 
     def __len__(self):
         return len(self.filenames)
@@ -28,7 +27,7 @@ class LJSpeechDataset(Dataset):
         filename = self.filenames[idx]
         waveform, sample_rate = torchaudio.load(filename)
         waveform = einops.rearrange(waveform, 'b x -> (b x)')
-        target = self.token_converter.symbols2numbers(
+        target = TokenConverter.symbols2numbers(
             symbols=self.targets[idx],
         )
 

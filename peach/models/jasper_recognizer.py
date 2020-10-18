@@ -13,6 +13,8 @@ from torch.nn import (
 from torch.optim import AdamW
 from torchaudio.transforms import MelSpectrogram
 
+from peach.utils.metric_calculator import MetricCalculator
+
 
 class JasperSubBlock(Module):
     def __init__(
@@ -111,7 +113,7 @@ class JasperRecognizer(Module):
         ):
         super().__init__()
         self.device = device
-        self.criterion = CTCLoss().to(self.device) #TODO
+        self.criterion = CTCLoss().to(self.device)
         self.mel_spectrogramer = MelSpectrogram(
             n_fft=1024,
             sample_rate=22000,
@@ -199,8 +201,8 @@ class JasperRecognizer(Module):
             input_lengths=input_lengths,
             target_lengths=target_lengths,
         )
-        cer = compute_cer()
-        wer = compute_wer()
+        cer = MetricCalculator.calculate_cer()
+        wer = MetricCalculator.calculate_wer()
 
         return loss, cer, wer
 
@@ -208,7 +210,7 @@ class JasperRecognizer(Module):
         pass
 
     def training_epoch_end(self):
-        pass
+        print("Training epoch is over!")
 
     def validation_step(self, batch, batch_idx):
         '''
@@ -228,7 +230,7 @@ class JasperRecognizer(Module):
         pass
 
     def validation_epoch_end(self):
-        pass
+        print("Training epoch is over!")
 
     def configure_optimizers(self):
         optimizer = AdamW(
