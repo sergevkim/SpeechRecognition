@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import torch
-from tqdm import tqdm
+import tqdm
 
 
 class Trainer:
@@ -32,6 +32,7 @@ class Trainer:
         checkpoint_path = checkpoints_dir / f"v{self.version}-e{epoch}.hdf5"
         torch.save(checkpoint, checkpoint_path)
 
+    @torch.enable_grad()
     def training_epoch(
             self,
             model,
@@ -40,7 +41,7 @@ class Trainer:
         ):
         model.train()
 
-        for batch_idx, batch in enumerate(tqdm(train_dataloader)):
+        for batch_idx, batch in enumerate(tqdm.tqdm(train_dataloader)):
             loss = model.training_step(batch, batch_idx)
             loss.backward()
             optimizer.step()
@@ -49,6 +50,7 @@ class Trainer:
 
         model.training_epoch_end()
 
+    @torch.no_grad()
     def validation_epoch(
             self,
             model,
@@ -56,7 +58,7 @@ class Trainer:
         ):
         model.eval()
 
-        for batch_idx, batch in enumerate(tqdm(val_dataloader)):
+        for batch_idx, batch in enumerate(tqdm.tqdm(val_dataloader)):
             loss = model.validation_step(batch, batch_idx)
             model.validation_step_end()
 

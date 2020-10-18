@@ -1,3 +1,6 @@
+from collections import OrderedDict
+
+import torch
 from torch.nn import (
     BatchNorm1d,
     Conv1d,
@@ -55,7 +58,7 @@ class JasperBlock(Module):
             in_channels: int,
             out_channels: int,
             kernel_width: int,
-            dropout_p: int,
+            dropout_p: float=0,
         ):
         super().__init__()
         self.r = r
@@ -63,22 +66,22 @@ class JasperBlock(Module):
         self.out_channels = out_channels
         self.kernel_width = kernel_width
         self.dropout_p = dropout_p
+        self.subblocks_ordered_dict = OrderedDict()
 
-        self.subblocks_list = list()
         for i in range(self.r):
-            self.subblocks_list.append(JasperSubBlock(
+            self.subblocks_ordered_dict[f'subblock_{i}'] = JasperSubBlock(
                 in_channels=self.in_channels,
                 out_channels=self.out_channels,
                 kernel_width=self.kernel_width,
                 dropout_p=self.dropout_p,
-            ))
+            )
 
-        self.subblocks = Sequential(*self.subblocks_list)
+        self.subblocks = Sequential(self.subblocks_ordered_dict)
         self.first_half_subblock = Sequential(
             Conv1d(
                 in_channels=self.in_channels,
                 out_channels=self.out_channels,
-                kernel_width=self.kernel_width,
+                kernel_size=self.kernel_width,
             ),
             BatchNorm1d(num_features=self.out_channels),
         )
@@ -104,10 +107,11 @@ class JasperRecognizer(Module):
             r: int=5,
             in_channels: int=100,
             out_channels: int=200,
-            device=torch.device('cuda'),
+            device=torch.device('cpu'),
         ):
+        super().__init__()
         self.device = device
-        self.criterion = CTCLoss().to(delf.device) #TODO
+        self.criterion = CTCLoss().to(self.device) #TODO
         self.mel_spectrogramer = MelSpectrogram(
             n_fft=1024,
             sample_rate=22000,
@@ -123,84 +127,28 @@ class JasperRecognizer(Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
 
-        self.b1 = Sequential(
-            JasperBlock(
-                in_channels=256,
-                out_channels=256,
-                kernel_width=11,
-                dropout_p=0.2,
-            ),
-            JasperBlock(
-                in_channels=256,
-                out_channels=256,
-                kernel_width=11,
-                dropout_p=0.2,
-            ),
-        )
-        self.b2 = Sequential(
-            JasperBlock(
-                in_channels=256,
-                out_channels=384,
-                kernel_width=13,
-                dropout_p=0.2,
-            ),
-            JasperBlock(
-                in_channels=384,
-                out_channels=384,
-                kernel_width=13,
-                dropout_p=0.2,
-            ),
-        )
-        self.b3 = Sequential(
-            JasperBlock(
-                in_channels=384,
-                out_channels=512,
-                kernel_width=17,
-                dropout_p=0.2,
-            ),
-            JasperBlock(
-                in_channels=512,
-                out_channels=512,
-                kernel_width=17,
-                dropout_p=0.2,
-            ),
-        )
-        self.b4 = Sequential(
-            JasperBlock(
-                in_channels=512,
-                out_channels=640,
-                kernel_width=21,
-                dropout_p=0.3,
-            ),
-            JasperBlock(
-                in_channels=640,
-                out_channels=640,
-                kernel_width=21,
-                dropout_p=0.3,
-            ),
-        )
-        self.b5 = Sequential(
-            JasperBlock(
-                in_channels=640,
-                out_channels=768,
-                kernel_width=25,
-                dropout_p=0.3,
-            ),
-            JasperBlock(
-                in_channels=768,
-                out_channels=768,
-                kernel_width=25,
-                dropout_p=0.3,
-            ),
-        )
+        in_channels_list = [256, 256, 384, 512, 640]
+        out_channels_list = [256, 384, 514, 640, 768]
+        kernel_widths_list = [11, 13, 17, 21, 25]
+        dropouts_list = [0.2, 0.2, 0.2, 0.3, 0.3]
+        self.blocks_ordered_dict = OrderedDict()
 
-        self.blocks = Sequential(
-            self.b1,
-            self.b2,
-            self.b3,
-            self.b4,
-            self.b5,
-        )
+        for i in range(5):
+            self.blocks_ordered_dict[f'block_{i}_0'] = JasperBlock(
+                r=self.r,
+                in_channels=in_channels_list[i],
+                out_channels=out_channels_list[i],
+                kernel_width=kernel_widths_list[i],
+                dropout_p=dropouts_list[i],
+            )
+            self.blocks_ordered_dict[f'block_{i}_1'] = JasperBlock(
+                r=self.r,
+                in_channels=out_channels_list[i],
+                out_channels=out_channels_list[i],
+                kernel_width=kernel_widths_list[i],
+                dropout_p=dropouts_list[i],
+            )
+
         self.prolog = JasperSubBlock(
             in_channels=self.in_channels,
             out_channels=256,
@@ -208,27 +156,28 @@ class JasperRecognizer(Module):
             dropout_p=0.2,
             stride=2,
         )
-        self.epilog = Sequential(
-            JasperSubBlock(
+        self.blocks = Sequential(self.blocks_ordered_dict)
+        self.epilog = Sequential(OrderedDict(
+            subblock_0=JasperSubBlock(
                 in_channels=768,
                 out_channels=896,
                 kernel_width=29,
                 dropout_p=0.4,
                 dilation=2,
             ),
-            JasperSubBlock(
+            subblock_1=JasperSubBlock(
                 in_channels=896,
                 out_channels=1024,
                 kernel_width=1,
                 dropout_p=0.4,
             ),
-            JasperSubBlock(
+            subblock_2=JasperSubBlock(
                 in_channels=1024,
                 out_channels=self.out_channels,
                 kernel_width=1,
                 dropout_p=0,
             ),
-        )
+        ))
 
     def forward(self, x):
         x_1 = self.prolog(x)
@@ -238,15 +187,22 @@ class JasperRecognizer(Module):
         return x_3
 
     def training_step(self, batch, batch_idx):
-        waveforms, labels = batch
+        waveforms, targets, waveform_lengths, target_lengths = batch
         waveforms = waveforms.to(device)
-        labels = labels.to(device)
+        targets = targets.to(device) #TODO lengths.to(device)?
         mel_spectrograms = self.mel_spectrogramer(waveforms)
 
         predictions = self(mel_spectrograms)
-        loss = criterion(predictions, labels)
+        loss = criterion(
+            log_probs=predictions,
+            targets=targets,
+            input_lengths=input_lengths,
+            target_lengths=target_lengths,
+        )
+        cer = compute_cer()
+        wer = compute_wer()
 
-        return loss
+        return loss, cer, wer
 
     def training_step_end(self):
         pass
@@ -255,6 +211,7 @@ class JasperRecognizer(Module):
         pass
 
     def validation_step(self, batch, batch_idx):
+        '''
         waveforms, labels = batch
         waveforms = waveforms.to(self.device)
         labels = labels.to(self.device)
@@ -264,6 +221,8 @@ class JasperRecognizer(Module):
         loss = criterion(predictions, labels)
 
         return loss
+        '''
+        pass
 
     def validation_step_end(self):
         pass
