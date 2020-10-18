@@ -4,14 +4,14 @@ from peach.utils.token_converter import TokenConverter
 class MetricCalculator:
     @staticmethod
     def calculate_cer(
-            prediction,
+            answer,
             target,
         ):
         pass
 
     @staticmethod
     def calculate_wer(
-            prediction,
+            answer,
             target,
         ):
         pass

@@ -109,10 +109,12 @@ class JasperRecognizer(Module):
             r: int=5,
             in_channels: int=100,
             out_channels: int=200,
+            learning_rate: float=3e-4,
             device=torch.device('cpu'),
         ):
         super().__init__()
         self.device = device
+        self.learning_rate = learning_rate
         self.criterion = CTCLoss().to(self.device)
         self.mel_spectrogramer = MelSpectrogram(
             n_fft=1024,
@@ -195,14 +197,23 @@ class JasperRecognizer(Module):
         mel_spectrograms = self.mel_spectrogramer(waveforms)
 
         predictions = self(mel_spectrograms)
+        log_probs = torch.nn.functional.log_softmax(predictions)
+        answers = peach.utils.find_best_path(log_probs) #TODO find best path
         loss = criterion(
-            log_probs=predictions,
+            log_probs=log_probs,
             targets=targets,
             input_lengths=input_lengths,
             target_lengths=target_lengths,
         )
-        cer = MetricCalculator.calculate_cer()
-        wer = MetricCalculator.calculate_wer()
+
+        cer = MetricCalculator.calculate_cer(
+            answers=answers,
+            targets=targets,
+        )
+        wer = MetricCalculator.calculate_wer(
+            answers=answers,
+            targets=targets,
+        )
 
         return loss, cer, wer
 
@@ -234,8 +245,8 @@ class JasperRecognizer(Module):
 
     def configure_optimizers(self):
         optimizer = AdamW(
-            params=model.parameters(),
-            lr=learning_rate,
+            params=self.parameters(),
+            lr=self.learning_rate,
         )
 
         return optimizer
