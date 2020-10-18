@@ -58,7 +58,7 @@ class JasperBlock(Module):
             in_channels: int,
             out_channels: int,
             kernel_width: int,
-            dropout_p: float,
+            dropout_p: float=0,
         ):
         super().__init__()
         self.r = r

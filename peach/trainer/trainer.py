@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import torch
-from tqdm import tqdm
+import tqdm
 
 
 class Trainer:
@@ -41,7 +41,7 @@ class Trainer:
         ):
         model.train()
 
-        for batch_idx, batch in enumerate(tqdm(train_dataloader)):
+        for batch_idx, batch in enumerate(tqdm.tqdm(train_dataloader)):
             loss = model.training_step(batch, batch_idx)
             loss.backward()
             optimizer.step()
@@ -58,7 +58,7 @@ class Trainer:
         ):
         model.eval()
 
-        for batch_idx, batch in enumerate(tqdm(val_dataloader)):
+        for batch_idx, batch in enumerate(tqdm.tqdm(val_dataloader)):
             loss = model.validation_step(batch, batch_idx)
             model.validation_step_end()
 
