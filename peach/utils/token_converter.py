@@ -1,8 +1,10 @@
+import string
+
 from torch import Tensor
 
 
 class TokenConverter:
-    ALPHABET = list(' abcdefghijklmnopqrstuvwxyz')
+    ALPHABET = list(' ' + string.ascii_lowercase)
     SYMBOL2NUMBER = dict()
     NUMBER2SYMBOL = dict()
 

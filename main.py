@@ -13,6 +13,7 @@ def main(args):
     device = args['device']
     learning_rate = args['learning_rate']
     max_epoch = args['max_epoch']
+    verbose = args['verbose']
     version = args['version']
 
     model = JasperRecognizer(
@@ -30,6 +31,7 @@ def main(args):
     trainer = Trainer(
         logger=logger,
         max_epoch=max_epoch,
+        verbose=verbose,
         version=version,
     )
 
@@ -41,9 +43,10 @@ def main(args):
 
 if __name__ == "__main__":
     args = dict(
-        device=torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'),
+        device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
         learning_rate=3e-4,
         max_epoch=1,
+        verbose=False,
         version='0.1.0',
     )
     parser = ArgumentParser() #TODO

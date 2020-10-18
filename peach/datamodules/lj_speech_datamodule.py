@@ -1,3 +1,4 @@
+import string
 from pathlib import Path
 from PIL import Image
 
@@ -53,21 +54,23 @@ class LJSpeechDataModule:
 
     def prepare_data(self):
         wavs_dir = self.data_dir / "wavs"
-        labels_path = self.data_dir / "metadata.csv"
+        targets_path = self.data_dir / "metadata.csv"
         wav_filenames = [str(p) for p in wavs_dir.glob('*.wav')]
         wav_filenames.sort()
-        labels_file = open(labels_path, 'r')
+        targets_file = open(targets_path, 'r')
 
-        labels = list()
+        targets = list()
 
         for i in range(len(wav_filenames)):
-            string = labels_file.readline()
-            labels.append(string.split('|')[-1])
+            line = targets_file.readline()
+            table = str.maketrans('', '', string.punctuation)
+            target = line.split('|')[-1].lower().translate(table)[:-1]
+            targets.append(target)
 
-        data = {
-            "filenames": wav_filenames,
-            "labels": labels,
-        }
+        data = dict(
+            filenames=wav_filenames,
+            targets=targets,
+        )
 
         return data
 
@@ -77,7 +80,7 @@ class LJSpeechDataModule:
         ):
         data = self.prepare_data()
         wav_filenames = data['filenames']
-        targets = data['labels']
+        targets = data['targets']
 
         full_dataset = LJSpeechDataset(
             filenames=wav_filenames,

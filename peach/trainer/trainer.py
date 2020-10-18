@@ -9,10 +9,12 @@ class Trainer:
             self,
             logger,
             max_epoch,
+            verbose,
             version,
         ):
         self.logger = logger
         self.max_epoch = max_epoch
+        self.verbose = verbose
         self.version = version
 
     def save_checkpoint(
