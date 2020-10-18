@@ -250,8 +250,10 @@ class JasperRecognizer(Module):
             input_lengths=input_lengths,
             target_lengths=target_lengths,
         )
+        cer = compute_cer()
+        wer = compute_wer()
 
-        return loss
+        return loss, cer, wer
 
     def training_step_end(self):
         pass

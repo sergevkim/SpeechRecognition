@@ -2,6 +2,7 @@ from pathlib import Path
 from PIL import Image
 
 from einops import rearrange
+from torch import Tensor
 from torch.utils.data import Dataset, DataLoader, random_split
 import torchaudio
 
@@ -11,9 +12,10 @@ class LJSpeechDataset(Dataset):
             self,
             filenames,
             targets,
+            max_waveform_length=100000,
         ):
         self.filenames = filenames
-        self.targets = labels
+        self.targets = targets
 
     def __len__(self):
         return len(self.filenames)
@@ -21,11 +23,14 @@ class LJSpeechDataset(Dataset):
     def __getitem__(self, idx):
         filename = self.filenames[idx]
         waveform, sample_rate = torchaudio.load(filename)
+        waveform = rearrange(waveform, 'b x -> (b x)')
         target = self.targets[idx]
 
-        #TODO waveform: rearrange + waveform_length
-        waveform_length = None
-        target_length = None
+        waveform_length = min(len(waveform), self.max_waveform_length)
+        target_length = len(target)
+
+        waveform_length = Tensor(waveform_length)
+        target_length = Tensor(target_length)
 
         return (waveform, target, waveform_length, target_length)
 
