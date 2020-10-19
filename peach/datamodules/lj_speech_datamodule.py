@@ -1,18 +1,26 @@
+import string
 from pathlib import Path
 from PIL import Image
 
-from torch.utils.data import Dataset, DataLoader, random_split
+import einops
+import torch
 import torchaudio
+from torch import Tensor
+from torch.utils.data import Dataset, DataLoader
+
+from peach.utils import TokenConverter
 
 
 class LJSpeechDataset(Dataset):
     def __init__(
             self,
             filenames,
-            labels,
+            targets,
+            max_waveform_length=100000,
         ):
         self.filenames = filenames
-        self.labels = labels
+        self.targets = targets
+        self.max_waveform_length = max_waveform_length
 
     def __len__(self):
         return len(self.filenames)
@@ -20,9 +28,18 @@ class LJSpeechDataset(Dataset):
     def __getitem__(self, idx):
         filename = self.filenames[idx]
         waveform, sample_rate = torchaudio.load(filename)
-        label = self.labels[idx]
+        waveform = einops.rearrange(waveform, 'b x -> (b x)')
+        target = TokenConverter.symbols2numbers(
+            symbols=self.targets[idx],
+        )
 
-        return (waveform, label)
+        waveform_length = min(len(waveform), self.max_waveform_length)
+        target_length = len(target)
+
+        waveform_length = Tensor(waveform_length)
+        target_length = Tensor(target_length)
+
+        return (waveform, target, waveform_length, target_length)
 
 
 class LJSpeechDataModule:
@@ -38,21 +55,23 @@ class LJSpeechDataModule:
 
     def prepare_data(self):
         wavs_dir = self.data_dir / "wavs"
-        labels_path = self.data_dir / "metadata.csv"
+        targets_path = self.data_dir / "metadata.csv"
         wav_filenames = [str(p) for p in wavs_dir.glob('*.wav')]
         wav_filenames.sort()
-        labels_file = open(labels_path, 'r')
+        targets_file = open(targets_path, 'r')
 
-        labels = list()
+        targets = list()
 
         for i in range(len(wav_filenames)):
-            string = labels_file.readline()
-            labels.append(string.split('|')[-1])
+            line = targets_file.readline()
+            table = str.maketrans('', '', string.punctuation)
+            target = line.split('|')[-1].lower().translate(table)[:-1]
+            targets.append(target)
 
-        data = {
-            "filenames": wav_filenames,
-            "labels": labels,
-        }
+        data = dict(
+            filenames=wav_filenames,
+            targets=targets,
+        )
 
         return data
 
@@ -62,18 +81,18 @@ class LJSpeechDataModule:
         ):
         data = self.prepare_data()
         wav_filenames = data['filenames']
-        labels = data['labels']
+        targets = data['targets']
 
         full_dataset = LJSpeechDataset(
             filenames=wav_filenames,
-            labels=labels,
+            targets=targets,
         )
 
         full_size = len(full_dataset)
         val_size = int(val_ratio * full_size)
         train_size = full_size - val_size
 
-        self.train_dataset, self.val_dataset = random_split(
+        self.train_dataset, self.val_dataset = torch.utils.data.random_split(
             dataset=full_dataset,
             lengths=[train_size, val_size],
         )
