@@ -11,11 +11,20 @@ from torch.utils.data import Dataset, DataLoader
 from peach.utils import TokenConverter
 
 
+def zero_padding(sequence, new_length):
+    padded_sequence = torch.zeros(new_length)
+    padded_sequence[:new_length] = sequence[:new_length]
+
+    return padded_sequence
+
+
+
 class LJSpeechDataset(Dataset):
     def __init__(
             self,
             filenames,
             targets,
+            max_target_length=100,
             max_waveform_length=100000,
         ):
         self.filenames = filenames
@@ -33,13 +42,28 @@ class LJSpeechDataset(Dataset):
             symbols=self.targets[idx],
         )
 
-        waveform_length = min(len(waveform), self.max_waveform_length)
-        target_length = len(target)
+        waveform_new_length = min(len(waveform), self.max_waveform_length)
+        target_new_length = min(len(target), self.max_target_length)
+        waveform_length = Tensor(waveform_new_length)
+        target_length = Tensor(target_new_length)
 
-        waveform_length = Tensor(waveform_length)
-        target_length = Tensor(target_length)
+        padded_waveform = zero_padding(
+            sequence=waveform,
+            new_length=waveform_new_length,
+        )
+        padded_target = zero_padding(
+            sequence=target,
+            new_length=target_new_length,
+        )
 
-        return (waveform, target, waveform_length, target_length)
+        result = (
+            padded_waveform,
+            padded_target,
+            waveform_length,
+            target_length,
+        )
+
+        return result
 
 
 class LJSpeechDataModule:
