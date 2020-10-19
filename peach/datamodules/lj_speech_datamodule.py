@@ -56,7 +56,7 @@ class LJSpeechDataModule:
     def prepare_data(self):
         wavs_dir = self.data_dir / "wavs"
         targets_path = self.data_dir / "metadata.csv"
-        wav_filenames = [str(p) for p in wavs_dir.glob('*.wav')]
+        wav_filenames = list(str(p) for p in wavs_dir.glob('*.wav'))
         wav_filenames.sort()
         targets_file = open(targets_path, 'r')
 

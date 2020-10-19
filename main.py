@@ -1,10 +1,10 @@
 from argparse import ArgumentParser
 from pathlib import Path
 
-import neptune
 import torch
 
 from peach.datamodules import LJSpeechDataModule
+from peach.loggers import NeptuneLogger
 from peach.models import JasperRecognizer, QuartzNetRecognizer
 from peach.trainer import Trainer
 
@@ -27,7 +27,10 @@ def main(args):
         num_workers=4,
     )
     datamodule.setup(val_ratio=0.1)
-    logger = None #TODO
+    logger = NeptuneLogger(
+        api_key=None,
+        project_name=None,
+    )
     trainer = Trainer(
         logger=logger,
         max_epoch=max_epoch,

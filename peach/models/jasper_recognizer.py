@@ -231,7 +231,7 @@ class JasperRecognizer(Module):
         pass
 
     def validation_epoch_end(self):
-        print("Training epoch is over!")
+        print("Validation epoch is over!")
 
     def configure_optimizers(self):
         optimizer = AdamW(
