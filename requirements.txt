@@ -1,2 +1,4 @@
+einops
+neptune-client
 numpy
 

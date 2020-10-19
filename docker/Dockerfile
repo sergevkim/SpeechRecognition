@@ -30,6 +30,6 @@ RUN . ~/.bashrc && conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
 RUN apt-get -y install libsndfile1
 
 # Requirements
-#COPY requirements.txt /root/requirements.txt
-#RUN . ~/.bashrc && pip install -r /root/requirements.txt
+COPY requirements.txt /root/requirements.txt
+RUN . ~/.bashrc && pip install -r /root/requirements.txt
 
