@@ -19,3 +19,7 @@ RUN ln -sf /usr/share/zoneinfo/Europe/Moscow /etc/localtime
 
 RUN apt-get -y install libsndfile1
 
+# Requirements
+COPY requirements.txt /root/requirements.txt
+RUN . ~/.bashrc && pip install -r /root/requirements.txt
+
