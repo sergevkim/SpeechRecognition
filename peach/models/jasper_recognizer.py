@@ -133,7 +133,7 @@ class JasperRecognizer(Module):
 
         self.device = device
         self.learning_rate = learning_rate
-        self.criterion = CTCLoss().to(self.device)
+        self.criterion = CTCLoss(blank=0).to(self.device)
         self.mel_spectrogramer = MelSpectrogram(
             n_fft=1024,
             sample_rate=22000,
@@ -199,9 +199,7 @@ class JasperRecognizer(Module):
     def forward(self, x):
         x_1 = self.prolog(x)
         x_2 = self.blocks(x_1)
-        print(x_1.shape, x_2.shape)
         x_3 = self.epilog(x_2)
-        print(x_3.shape)
 
         return x_3
 
@@ -212,14 +210,15 @@ class JasperRecognizer(Module):
         mel_spectrograms = self.mel_spectrogramer(waveforms)
 
         predictions = self(mel_spectrograms)
-        log_probs = torch.nn.functional.log_softmax(predictions)
-        answers = PathFinder.find_best_path(log_probs)
-        loss = criterion(
+        log_probs = torch.nn.functional.log_softmax(predictions, dim=2)
+        #answers = PathFinder.find_best_path(log_probs)
+        loss = self.criterion(
             log_probs=log_probs,
             targets=targets,
-            input_lengths=input_lengths,
+            input_lengths=waveform_lengths,
             target_lengths=target_lengths,
         )
+        print('?', loss.item())
 
         cer = MetricCalculator.calculate_cer(
             answers=answers,

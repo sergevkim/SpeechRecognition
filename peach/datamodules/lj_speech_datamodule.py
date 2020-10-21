@@ -45,29 +45,19 @@ class LJSpeechDataset(Dataset):
         waveform_length = min(len(waveform), self.max_waveform_length)
         padded_waveform = torch.zeros(self.max_waveform_length)
         padded_waveform[:waveform_length] = waveform[:waveform_length]
-        waveform_length = Tensor(waveform_length)
+        waveform_length = torch.tensor(waveform_length)
 
         target_length = min(len(target), self.max_target_length)
         padded_target = torch.zeros(self.max_target_length)
         padded_target[:target_length] = target[:target_length]
-        target_length = Tensor(target_length)
-        '''
-        padded_waveform = zero_padding(
-            sequence=waveform,
-            new_length=waveform_new_length,
-        )
-        padded_target = zero_padding(
-            sequence=target,
-            new_length=target_new_length,
-        )
-        '''
+        target_length = torch.tensor(target_length)
+
         result = (
             padded_waveform,
             padded_target,
             waveform_length,
             target_length,
         )
-        print(padded_target.shape)
 
         return result
 
