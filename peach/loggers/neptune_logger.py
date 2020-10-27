@@ -1,5 +1,5 @@
 #https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pytorch_lightning/loggers/neptune.py
-from typing import Any, Dict, Union
+from typing import Any, Dict, Optional, Union
 
 import neptune
 from torch import Tensor
@@ -8,12 +8,11 @@ from torch import Tensor
 class NeptuneLogger:
     def __init__(
             self,
-            api_key: string,
-            project_name: string,
-            experiment_name: string,
+            api_token: str,
+            project_name: str,
+            experiment_name: str,
             params: Dict[str, Any],
         ):
-        self.api_key = api_key
         self.project = neptune.init(
             project_qualified_name=project_name,
             api_token=api_token,
@@ -31,7 +30,7 @@ class NeptuneLogger:
         for metric_name, metric_value in metrics.items():
             self.log_metric(
                 metric_name=metric_name,
-                metric_value=matric_value,
+                metric_value=metric_value,
                 step=step,
             )
 
