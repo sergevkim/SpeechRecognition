@@ -136,11 +136,9 @@ class JasperRecognizer(Module):
         self.criterion = CTCLoss(blank=0).to(self.device)
         self.mel_spectrogramer = MelSpectrogram(
             n_fft=1024,
-            sample_rate=22000,
+            sample_rate=16000,
             win_length=1024,
             hop_length=256,
-            f_min=0,
-            f_max=800,
             n_mels=self.in_channels,
         ).to(self.device)
 
@@ -211,7 +209,12 @@ class JasperRecognizer(Module):
 
         predictions = self(mel_spectrograms)
         log_probs = torch.nn.functional.log_softmax(predictions, dim=2)
+        log_probs = log_probs.permute(1, 0, 2)
         #answers = PathFinder.find_best_path(log_probs)
+        print('!!', log_probs.shape)
+        print('!!', targets.shape)
+        print('!!', waveform_lengths.shape)
+        print('!!', target_lengths.shape)
         loss = self.criterion(
             log_probs=log_probs,
             targets=targets,

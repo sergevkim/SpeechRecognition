@@ -47,7 +47,7 @@ def main(args):
 
 if __name__ == "__main__":
     args = dict(
-        device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
+        device=torch.device('cuda:1' if torch.cuda.is_available() else 'cpu'),
         learning_rate=3e-4,
         max_epoch=1,
         verbose=False,
